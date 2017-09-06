@@ -48,14 +48,14 @@ def replicateDatabase(dbConnection, targetGDB):
         arcpy.CreateFileGDB_management(GDB_Path, GDB_Name)
 
         arcpy.env.workspace = dbConnection
-############### datasets #################
+    ############### datasets #################
+
         datasetList = (config.get('settings', 'sdeName_') + '.' + config.get('datasets', 'datasetList'))
         datasetList = datasetList.split()
-############### tables #################
+    ############### tables #################
+    ## i can't get values from config, need help!
 
-## i can't get values from config, need help!
         tables = [u'TABLE_1', u'TABLE_2', u'TABLE_3']
-
 
         allDbData = datasetList + tables
 
