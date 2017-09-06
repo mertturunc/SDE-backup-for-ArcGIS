@@ -20,3 +20,4 @@ To-Do List
 - [ ] Using config on table names
 - [ ] Select RAR and NAS transfer options in config
 - [ ] Task schedule system
+- [ ] Some cool wiki pages
