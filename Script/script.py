@@ -53,7 +53,7 @@ def replicateDatabase(dbConnection, targetGDB):
         datasetList = datasetList.split()
 ############### tables #################
 
-## i can't get values from config, need help
+## i can't get values from config, need help!
         tables = [u'TABLE_1', u'TABLE_2', u'TABLE_3']
 
 
