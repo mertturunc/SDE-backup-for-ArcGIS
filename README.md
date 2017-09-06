@@ -11,3 +11,12 @@ A Python backup script for SDE
 ```
 Open for help
 ```
+
+
+To-Do List
+-----
+
+- [ ] Three script in one code
+- [ ] Using config on table names
+- [ ] Select RAR and NAS transfer options in config
+- [ ] Task schedule system
