@@ -16,8 +16,8 @@ Open for help
 To-Do List
 -----
 
-- [ ] Three script in one code
-- [ ] Using config on table names
+- [x] Three script in one code
+- [x] Using config on table names
 - [ ] Select RAR and NAS transfer options in config
 - [ ] Task schedule system
 - [ ] Some cool wiki pages
