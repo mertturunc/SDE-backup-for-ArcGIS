@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import time, os, datetime, sys, logging, logging.handlers, shutil, ConfigParser, io, errno, stat, getpass, rarfile
+import time, os, datetime, sys, logging, logging.handlers, shutil, ConfigParser, io, errno, stat, getpass, zipfile
 import arcpy
 
 from collections import OrderedDict
