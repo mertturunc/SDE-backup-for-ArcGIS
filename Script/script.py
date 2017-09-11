@@ -1,20 +1,12 @@
 #!/usr/bin/env python
 
-import time, os, datetime, sys, logging, logging.handlers, shutil, ConfigParser, io
+import time, os, datetime, sys, logging, logging.handlers, shutil, ConfigParser, io, errno, stat, getpass, rarfile
 import arcpy
 
 from collections import OrderedDict
 from ConfigParser import RawConfigParser
 
 ########################## functions ##############################
-
-def rarDatabase():
-    os.system("RAR.vbs 1")
-    time.sleep(600)
-
-## if you have Network Attached Storage use this
-##   os.system("NAS.bat 1")
-
 def getDatabaseItemCount(workspace):
     log = logging.getLogger("script_log")
     """returns the item count in provided database"""
@@ -48,16 +40,26 @@ def replicateDatabase(dbConnection, targetGDB):
         arcpy.CreateFileGDB_management(GDB_Path, GDB_Name)
 
         arcpy.env.workspace = dbConnection
-    ############### datasets #################
 
-        datasetList = (config.get('settings', 'sdeName_') + '.' + config.get('datasets', 'datasetList'))
-        datasetList = datasetList.split()
-    ############### tables #################
-    ## i can't get values from config, need help!
+        try:
+            datasetList = [arcpy.Describe(a).name for a in arcpy.ListDatasets()]
+        except Exception, e:
+            datasetList = []
+            log.info(e)
 
-        tables = [u'TABLE_1', u'TABLE_2', u'TABLE_3']
+        try:
+            featureClasses = [arcpy.Describe(a).name for a in arcpy.ListFeatureClasses()]
+        except Exception, e:
+            featureClasses = []
+            log.info(e)
 
-        allDbData = datasetList + tables
+        for i in range(len(tables)):
+            tables[tables.index(tables[i])] = sdeNames_ + '.' + tables[i]
+
+        print tables
+
+
+        allDbData = tables
 
         for sourcePath in allDbData:
             targetName = sourcePath.split('.')[-1]
@@ -81,6 +83,41 @@ def replicateDatabase(dbConnection, targetGDB):
         Please check the database path and try again.".format(dbConnection))
 
 #####################################################################################
+def zip_folder(folder_path, output_path):
+
+    parent_folder = os.path.dirname(folder_path)
+
+    contents = os.walk(folder_path)
+    try:
+        zip_file = zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED)
+        for root, folders, files in contents:
+
+            for folder_name in folders:
+                absolute_path = os.path.join(root, folder_name)
+                relative_path = absolute_path.replace(parent_folder + '\\',
+                                                      '')
+                print "Adding '%s' to archive." % absolute_path
+                zip_file.write(absolute_path, relative_path)
+            for file_name in files:
+                absolute_path = os.path.join(root, file_name)
+                relative_path = absolute_path.replace(parent_folder + '\\',
+                                                      '')
+                print "Adding '%s' to archive." % absolute_path
+                zip_file.write(absolute_path, relative_path)
+        print "'%s' created successfully." % output_path
+    except IOError, message:
+        print message
+        sys.exit(1)
+    except OSError, message:
+        print message
+        sys.exit(1)
+    except zipfile.BadZipfile, message:
+        print message
+        sys.exit(1)
+    finally:
+        zip_file.close()
+
+
 
 def formatTime(x):
     minutes, seconds_rem = divmod(x, 60)
@@ -91,61 +128,96 @@ def formatTime(x):
         minutes, seconds_rem = divmod(x, 60)
         return "00:%02d:%02d" % (minutes, seconds_rem)
 
+class MultiOrderedDict(OrderedDict):
+    def __setitem__(self, key, value):
+        if isinstance(value, list) and key in self:
+            self[key].extend(value)
+        else:
+            super(OrderedDict, self).__setitem__(key, value)
+
+
+
 if __name__ == "__main__":
     startTime = time.time()
     now = datetime.datetime.now()
 
-    ############################### variables #################################
+    config = ConfigParser.RawConfigParser(dict_type=MultiOrderedDict)
+    config.read(['config.ini'])
 
-    with open("config.ini") as f:
-        sample_config = f.read()
-    config = ConfigParser.RawConfigParser(allow_no_value=True)
-    config.readfp(io.BytesIO(sample_config))
+    username = getpass.getuser()
 
+    sdeFiles = config.get('settings', 'sdeFiles')
+    print "Preparing backup for % i item\n" % len(sdeFiles)
+    sdeNames = config.get('settings', 'sdeNames')
+    mainFolder = config.get('settings', 'mainFolder')
+    mainFolder = ''.join(mainFolder)
+    global table_list
+    tables = config.get('settings','tables')
+    sdeMainName = config.get('settings','mainName')
+    nasMainFolder = config.get('settings','nasMainFolder')
+    nasMainFolder = ''.join(nasMainFolder)
 
+    for i in range(len(sdeFiles)):
 
+        databaseConnection = os.path.join('Database Connections\\', sdeFiles[i])
+        targetGDB = mainFolder + '\\' + sdeMainName[i] + '\\' + sdeNames[i]
+        logPath = os.path.join(targetGDB, '\\_LOG')
+        gdbName = sdeNames[i] + (now.strftime("_%d.%m.%Y.gdb"))
+        targetName = os.path.join(targetGDB, gdbName)
+        sdeNames_ = sdeNames[i]
 
+        try:
+            os.makedirs(logPath)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
-    logPath = config.get('settings', 'logPath_')
-    databaseConnection = os.path.join('Database Connections\\', config.get('settings', 'sdeFile_'))
-    targetGDB = config.get('settings', 'gdbPath_')
-    targetName = os.path.join(config.get('settings', 'gdbPath_'), config.get('settings', 'sdeName_') + (now.strftime("_%Y-%m-%d_%H-%M.gdb")))
+        try:
+            os.makedirs(targetGDB)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        ############################### logging items ###################################
 
-    ############################### logging items ###################################
+        logName = os.path.join(logPath,(now.strftime("%Y-%m-%d_%H-%M.log")))
 
-    logName = os.path.join(logPath,(now.strftime("%Y-%m-%d_%H-%M.log")))
+        log = logging.getLogger("script_log")
+        log.setLevel(logging.INFO)
 
-    log = logging.getLogger("script_log")
-    log.setLevel(logging.INFO)
+        h1 = logging.FileHandler(logName)
+        h2 = logging.StreamHandler()
 
-    h1 = logging.FileHandler(logName)
-    h2 = logging.StreamHandler()
+        f = logging.Formatter("[%(levelname)s] [%(asctime)s] [%(lineno)d] - %(message)s",'%m/%d/%Y %I:%M:%S %p')
 
-    f = logging.Formatter("[%(levelname)s] [%(asctime)s] [%(lineno)d] - %(message)s",'%m/%d/%Y %I:%M:%S %p')
+        h1.setFormatter(f)
+        h2.setFormatter(f)
 
-    h1.setFormatter(f)
-    h2.setFormatter(f)
+        h1.setLevel(logging.INFO)
+        h2.setLevel(logging.INFO)
 
-    h1.setLevel(logging.INFO)
-    h2.setLevel(logging.INFO)
+        log.addHandler(h1)
+        log.addHandler(h2)
 
-    log.addHandler(h1)
-    log.addHandler(h2)
+        log.info('Script: {0}'.format(os.path.basename(sys.argv[0])))
 
-    log.info('Script: {0}'.format(os.path.basename(sys.argv[0])))
-
-    try:
-        ########################## function calls ######################################
+        print "\nRunning script for % s\n" % sdeNames[i]
 
         replicateDatabase(databaseConnection, targetName)
 
-        ################################################################################
-    except Exception, e:
-        log.exception(e)
+        target_folder = targetName
+        zip_path =  targetGDB + ".zip"
+        nasPath = nasMainFolder + '\\' + sdeMainName[i] + '\\' + sdeNames[i] + '\\'
+        try:
+            os.makedirs(nasPath)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
-    totalTime = formatTime((time.time() - startTime))
-    log.info('--------------------------------------------------')
-    log.info("Script Completed After: {0}".format(totalTime))
-    log.info('--------------------------------------------------')
-    time.sleep(120)
-    rarDatabase()
+        desktop_folder = nasPath + gdbName + ".zip"
+
+        print "\nRunning archive script for % s\n" % sdeNames[i]
+
+        zip_folder(target_folder,
+                      desktop_folder)
+
+        print "\nArchive progress is completed.\n"
