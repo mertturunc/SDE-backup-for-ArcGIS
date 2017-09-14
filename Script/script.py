@@ -56,10 +56,7 @@ def replicateDatabase(dbConnection, targetGDB):
         for i in range(len(tables)):
             tables[tables.index(tables[i])] = sdeNames_ + '.' + tables[i]
 
-        print tables
-
-
-        allDbData = tables
+        allDbData = datasetList + featureClasses + tables
 
         for sourcePath in allDbData:
             targetName = sourcePath.split('.')[-1]
