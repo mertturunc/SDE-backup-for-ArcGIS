@@ -54,9 +54,11 @@ def replicateDatabase(dbConnection, targetGDB):
             log.info(e)
 
         for i in range(len(tables)):
-            tables[tables.index(tables[i])] = sdeNames_ + '.' + tables[i]
+            tables_[tables_.index(tables_[i])] = sdeNames_ + '.' + tables_[i]
 
-        allDbData = datasetList + featureClasses + tables
+
+
+        allDbData = datasetList + tables + featureClasses
 
         for sourcePath in allDbData:
             targetName = sourcePath.split('.')[-1]
@@ -160,8 +162,10 @@ if __name__ == "__main__":
         targetGDB = mainFolder + '\\' + sdeMainName[i] + '\\' + sdeNames[i]
         logPath = os.path.join(targetGDB, '\\_LOG')
         gdbName = sdeNames[i] + (now.strftime("_%d.%m.%Y.gdb"))
+        gdbNameWithNoExt = sdeNames[i] + (now.strftime("_%d.%m.%Y"))
         targetName = os.path.join(targetGDB, gdbName)
         sdeNames_ = sdeNames[i]
+        tables_ = tables[:]
 
         try:
             os.makedirs(logPath)
@@ -202,7 +206,7 @@ if __name__ == "__main__":
         replicateDatabase(databaseConnection, targetName)
 
         target_folder = targetName
-        zip_path =  targetGDB + ".zip"
+        zip_path =  targetGDB + ".rar"
         nasPath = nasMainFolder + '\\' + sdeMainName[i] + '\\' + sdeNames[i] + '\\'
         try:
             os.makedirs(nasPath)
@@ -210,7 +214,7 @@ if __name__ == "__main__":
             if e.errno != errno.EEXIST:
                 raise
 
-        desktop_folder = nasPath + gdbName + ".zip"
+        desktop_folder = nasPath + gdbNameWithNoExt + ".rar"
 
         print "\nRunning archive script for % s\n" % sdeNames[i]
 
