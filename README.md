@@ -18,6 +18,6 @@ To-Do List
 
 - [x] Three script in one code
 - [x] Using config on table names
-- [ ] Select RAR and NAS transfer options in config
-- [ ] Task schedule system
+- [ ] Select RAR and NAS transfer options in config (Not sure with this thing)
+- [ ] Task schedule system (Currently working with manually added Windows's Task Scheduler task)
 - [ ] Some cool wiki pages
